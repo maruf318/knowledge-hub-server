@@ -27,9 +27,15 @@ async function run() {
 
     const bookCollection = client.db("bookDB").collection("books");
     const categoriesCollection = client.db("bookDB").collection("categories");
+    const cartCollection = client.db("bookDB").collection("cart");
     app.post("/addbooks", async (req, res) => {
       const newBook = req.body;
       const result = await bookCollection.insertOne(newBook);
+      res.send(result);
+    });
+    app.post("/cart", async (req, res) => {
+      const cartBook = req.body;
+      const result = await cartCollection.insertOne(cartBook);
       res.send(result);
     });
     app.get("/allbooks", async (req, res) => {
@@ -73,6 +79,25 @@ async function run() {
           rating: updatedBook.rating,
           description: updatedBook.description,
           author: updatedBook.author,
+        },
+      };
+      const result = await bookCollection.updateOne(filter, book, options);
+      res.send(result);
+    });
+    app.patch("/borrow/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updatedBook = req.body;
+      const book = {
+        $set: {
+          // name: updatedBook.name,
+          // category: updatedBook.category,
+          // image: updatedBook.image,
+          quantity: updatedBook.quantity,
+          // rating: updatedBook.rating,
+          // description: updatedBook.description,
+          // author: updatedBook.author,
         },
       };
       const result = await bookCollection.updateOne(filter, book, options);
