@@ -38,6 +38,13 @@ async function run() {
       const result = await cartCollection.insertOne(cartBook);
       res.send(result);
     });
+
+    app.delete("/cart/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await cartCollection.deleteOne(query);
+      res.send(result);
+    });
     app.get("/allbooks", async (req, res) => {
       const result = await bookCollection.find().toArray();
       res.send(result);
@@ -112,6 +119,39 @@ async function run() {
       };
       const result = await bookCollection.updateOne(filter, book, options);
       res.send(result);
+    });
+    app.patch("/cart/:name", async (req, res) => {
+      const name = req.params.name;
+      console.log(name);
+      const filter = { name: name };
+      const options = { upsert: true };
+      const updatedBook = req.body;
+      console.log(updatedBook);
+      const book = {
+        $set: {
+          // name: updatedBook.name,
+          // category: updatedBook.category,
+          // image: updatedBook.image,
+          quantity: updatedBook.quantity,
+          // rating: updatedBook.rating,
+          // description: updatedBook.description,
+          // author: updatedBook.author,
+        },
+      };
+      const result = await bookCollection.updateOne(filter, book, options);
+      res.send(result);
+      // console.log(bookcoll);
+      // if (bookcoll) {
+      //   const updatedQuantity = (parseInt(bookcoll.quantity) || 0) + 1;
+      //   const update = {
+      //     $set: {
+      //       quantity: updatedQuantity,
+      //     },
+      //   };
+
+      //   const result = await bookCollection.updateOne(filter, update);
+      //   res.send(result);
+      // }
     });
 
     // Send a ping to confirm a successful connection
