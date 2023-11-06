@@ -65,6 +65,16 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
+    //getting some data of a certain user
+    app.get("/cart", async (req, res) => {
+      console.log(req.query.email);
+      let query = {};
+      if (req.query?.email) {
+        query = { email: req.query.email };
+      }
+      const result = await cartCollection.find(query).toArray();
+      res.send(result);
+    });
     app.put("/book/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
