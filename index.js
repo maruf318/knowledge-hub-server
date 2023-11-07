@@ -85,7 +85,7 @@ async function run() {
     app.put("/book/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
-      const options = { upsert: true };
+      // const options = { upsert: true };
       const updatedBook = req.body;
       const book = {
         $set: {
@@ -98,13 +98,13 @@ async function run() {
           author: updatedBook.author,
         },
       };
-      const result = await bookCollection.updateOne(filter, book, options);
+      const result = await bookCollection.updateOne(filter, book);
       res.send(result);
     });
     app.patch("/borrow/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
-      const options = { upsert: true };
+      // const options = { upsert: true };
       const updatedBook = req.body;
       const book = {
         $set: {
@@ -117,7 +117,7 @@ async function run() {
           // author: updatedBook.author,
         },
       };
-      const result = await bookCollection.updateOne(filter, book, options);
+      const result = await bookCollection.updateOne(filter, book);
       res.send(result);
     });
     app.patch("/cart/:name", async (req, res) => {
