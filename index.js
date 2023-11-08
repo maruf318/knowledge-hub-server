@@ -10,7 +10,11 @@ const port = process.env.PORT || 5000;
 // middleware
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: [
+      // "http://localhost:5173",
+      "https://knowledge-hub-c55c9.web.app",
+      "https://knowledge-hub-c55c9.firebaseapp.com",
+    ],
     credentials: true,
   })
 );
@@ -78,8 +82,17 @@ async function run() {
     app.post("/logout", async (req, res) => {
       const user = req.body;
       console.log("logging out ", user);
-      res.clearCookie("token", { maxAge: 0 }).send({ success: true });
+      res
+        .clearCookie("token", {
+          maxAge: 0,
+          sameSite: "none",
+          secure: true,
+        })
+        .send({ success: true });
     });
+
+    // secure: process.env.NODE_ENV === "production" ? true: false,
+    //     sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
 
     //library website related api
     app.post("/addbooks", logger, verifyToken, async (req, res) => {
