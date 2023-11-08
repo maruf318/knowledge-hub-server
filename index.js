@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+var cookieParser = require("cookie-parser");
 require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
@@ -14,6 +15,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(cookieParser());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ox9wd7x.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -25,11 +27,34 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+//middlewares
+const logger = (req, res, next) => {
+  console.log("log: info", req.method, req.url);
+  next();
+};
+const verifyToken = (req, res, next) => {
+  const token = req?.cookies?.token;
+  console.log("token in the middleware", token);
+  //for no token verify
+  if (!token) {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+  //for invalid token verify
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: "unauthorized access" });
+    }
+    req.user = decoded;
+    console.log(req.user);
+    next();
+  });
+  // next();
+};
 
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const bookCollection = client.db("bookDB").collection("books");
     const categoriesCollection = client.db("bookDB").collection("categories");
@@ -45,10 +70,10 @@ async function run() {
       res
         .cookie("token", token, {
           httpOnly: true,
-          secure: true,
-          sameSite: "none",
+          secure: process.env.NODE_ENV === "production" ? true : false,
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
         })
-        .send({ success: true });
+        .send({ success: true, token: token });
     });
     app.post("/logout", async (req, res) => {
       const user = req.body;
@@ -57,12 +82,13 @@ async function run() {
     });
 
     //library website related api
-    app.post("/addbooks", async (req, res) => {
+    app.post("/addbooks", logger, verifyToken, async (req, res) => {
       const newBook = req.body;
+      console.log("cookie test in /addbook post ", req.cookies);
       const result = await bookCollection.insertOne(newBook);
       res.send(result);
     });
-    app.post("/cart", async (req, res) => {
+    app.post("/cart", logger, verifyToken, async (req, res) => {
       const cartBook = req.body;
       const result = await cartCollection.insertOne(cartBook);
       res.send(result);
@@ -74,12 +100,15 @@ async function run() {
       const result = await cartCollection.deleteOne(query);
       res.send(result);
     });
-    app.get("/allbooks", async (req, res) => {
+    app.get("/allbooks", logger, verifyToken, async (req, res) => {
+      // console.log("in all books cookies backend: ", req.cookies);
+      console.log("cookie test in all books get", req.cookies);
       const result = await bookCollection.find().toArray();
       res.send(result);
     });
     //getting the categories for homepage
     app.get("/categories", async (req, res) => {
+      console.log("cookie test in /category get", req.cookies);
       const result = await categoriesCollection.find().toArray();
       res.send(result);
     });
@@ -91,6 +120,8 @@ async function run() {
     });
     app.get("/category/:name", async (req, res) => {
       const name = req.params.name;
+      console.log("cookie test in /category/:name get", req.cookies);
+
       console.log(name);
       // const query = { _id: new ObjectId(id) };
       // const result = await bookCollection.find(query);
@@ -102,8 +133,13 @@ async function run() {
       res.send(result);
     });
     //getting some data of a certain user
-    app.get("/cart", async (req, res) => {
+    app.get("/cart", logger, verifyToken, async (req, res) => {
+      console.log("cookie test in all books get", req.cookies);
       console.log(req.query.email);
+      console.log("token info of owner", req.user);
+      if (req.user.email !== req.query.email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
       let query = {};
       if (req.query?.email) {
         query = { email: req.query.email };
@@ -111,8 +147,9 @@ async function run() {
       const result = await cartCollection.find(query).toArray();
       res.send(result);
     });
-    app.put("/book/:id", async (req, res) => {
+    app.put("/book/:id", logger, verifyToken, async (req, res) => {
       const id = req.params.id;
+      console.log("cookie test in update put", req.cookies);
       const filter = { _id: new ObjectId(id) };
       // const options = { upsert: true };
       const updatedBook = req.body;
@@ -131,6 +168,7 @@ async function run() {
       res.send(result);
     });
     app.patch("/borrow/:id", async (req, res) => {
+      console.log("cookie test in /borrow/:id get", req.cookies);
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       // const options = { upsert: true };
@@ -151,11 +189,12 @@ async function run() {
     });
     app.patch("/cart/:name", async (req, res) => {
       const name = req.params.name;
+      console.log("cookie test in patch /cart/:name", req.cookies);
       console.log(name);
       const filter = { name: name };
       const options = { upsert: true };
       const updatedBook = req.body;
-      console.log(updatedBook);
+      // console.log(updatedBook);
       const book = {
         $set: {
           // name: updatedBook.name,
@@ -184,7 +223,7 @@ async function run() {
     });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
