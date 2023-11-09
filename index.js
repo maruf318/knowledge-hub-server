@@ -14,6 +14,7 @@ app.use(
       // "http://localhost:5173",
       "https://knowledge-hub-c55c9.web.app",
       "https://knowledge-hub-c55c9.firebaseapp.com",
+      "https://bespoke-piroshki-616533.netlify.app",
     ],
     credentials: true,
   })
